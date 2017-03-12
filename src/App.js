@@ -1,6 +1,7 @@
 import React, { Component, PureComponent } from 'react';
 import logo from './logo.svg';
 import './App.css';
+import Perf from 'react-addons-perf';
 
 function range(n) {
 	const result = [];
@@ -38,7 +39,10 @@ class ImpureClassItem extends Component {
 }
 
 const statelessHigherOrderComponent = parameter => BaseComponent => {
-	return props => <BaseComponent extraProp={ parameter } { ...props } />;
+	const ExtendedComponent = props => <BaseComponent extraProp={ parameter } { ...props } />;
+	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
+	ExtendedComponent.displayName = `StatelessHigherOrderComponent(${baseComponentName})`;
+	return ExtendedComponent;
 }
 
 const statefulPureHigherOrderComponent = parameter => BaseComponent => {
@@ -65,7 +69,7 @@ const statefulImpureHigherOrderComponent = parameter => BaseComponent => {
 	}
 };
 
-const FinalItem = range(4).reduce((acc, i) => statelessHigherOrderComponent('something')(acc), PureItem);
+const FinalItem = range(10).reduce((acc, i) => statelessHigherOrderComponent('something')(acc), PureItem);
 
 class App extends Component {
 
@@ -74,10 +78,18 @@ class App extends Component {
 		this.state = { counter: 0 };
 	}
 
+	componentDidUpdate() {
+		Perf.stop()
+		Perf.printInclusive()
+		Perf.printWasted()
+	}
+
 	componentDidMount() {
-		// setInterval(() => {
-		// 	this.setState({ counter: this.state.counter + 1 });
-		// }, 1000);
+		Perf.start();
+		setInterval(() => {
+			this.forceUpdate();
+			// this.setState({ counter: this.state.counter + 1 });
+		}, 1000);
 	}
 
 	render() {
@@ -89,7 +101,7 @@ class App extends Component {
 				</div>
 				<div className="App-intro" style={{ display: 'flex', flexDirection: 'column', padding: 10, overflow: 'scroll' }}>
 					{
-						range(5000).map(x => <FinalItem key={ x } content={ this.state.counter } />)
+						range(1).map(x => <FinalItem key={ x } content={ this.state.counter } />)
 					}
 				</div>
 			</div>
