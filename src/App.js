@@ -13,7 +13,7 @@ function range(n) {
 }
 
 const PureItem = ({ content }) => {
-	return <div style={{ display: 'flex', padding: 10, margin: 10, border: '1px solid gray' }}>{ content }</div>;
+	return <div style={{ display: 'flex', border: '1px solid gray', justifyContent: 'center', alignItems: 'center' }}>{ content }</div>;
 };
 
 class PureClassItem extends PureComponent {
@@ -23,7 +23,7 @@ class PureClassItem extends PureComponent {
 
 	render() {
 		const { content } = this.props;
-		return <div style={{ display: 'flex', padding: 10, margin: 10, border: '1px solid gray' }}>{ content }</div>;
+		return <div style={{ display: 'flex', border: '1px solid gray' }}>{ content }</div>;
 	}
 }
 
@@ -34,7 +34,7 @@ class ImpureClassItem extends Component {
 
 	render() {
 		const { content } = this.props;
-		return <div style={{ display: 'flex', padding: 10, margin: 10, border: '1px solid gray' }}>{ content }</div>;
+		return <div style={{ display: 'flex', border: '1px solid gray' }}>{ content }</div>;
 	}
 }
 
@@ -55,6 +55,8 @@ const statefulPureHigherOrderComponent = parameter => BaseComponent => {
 			return <BaseComponent extraProp={ parameter } { ...this.props } />;
 		}
 	}
+
+	return ExtendedComponent;
 }
 
 const statefulImpureHigherOrderComponent = parameter => BaseComponent => {
@@ -67,9 +69,17 @@ const statefulImpureHigherOrderComponent = parameter => BaseComponent => {
 			return <BaseComponent extraProp={ parameter } { ...this.props } />;
 		}
 	}
+
+	return ExtendedComponent;
 };
 
-const FinalItem = range(10).reduce((acc, i) => statelessHigherOrderComponent('something')(acc), PureItem);
+const squashingHigherOrderComponent = parameter => BaseComponent => {
+	return props => BaseComponent(props);
+};
+
+const HOCS_PER_ITEM = 10;
+const NUMBER_OF_ITEMS = 1000;
+const FinalItem = range(HOCS_PER_ITEM).reduce((acc, i) => squashingHigherOrderComponent('something')(acc), PureItem);
 
 class App extends Component {
 
@@ -79,16 +89,16 @@ class App extends Component {
 	}
 
 	componentDidUpdate() {
-		Perf.stop()
-		Perf.printInclusive()
-		Perf.printWasted()
+		Perf.stop();
+		Perf.printInclusive();
+		Perf.printWasted();
+		Perf.start();
 	}
 
 	componentDidMount() {
 		Perf.start();
 		setInterval(() => {
-			this.forceUpdate();
-			// this.setState({ counter: this.state.counter + 1 });
+			this.setState({ counter: this.state.counter + 1 });
 		}, 1000);
 	}
 
@@ -99,9 +109,9 @@ class App extends Component {
 					<img src={logo} className="App-logo" alt="logo" />
 					<h2>Welcome to React</h2>
 				</div>
-				<div className="App-intro" style={{ display: 'flex', flexDirection: 'column', padding: 10, overflow: 'scroll' }}>
+				<div className="App-intro" style={{ display: 'block', overflow: 'scroll', columnCount: NUMBER_OF_ITEMS / 10, columnWidth: 50 }}>
 					{
-						range(1).map(x => <FinalItem key={ x } content={ this.state.counter } />)
+						range(NUMBER_OF_ITEMS).map(x => <FinalItem key={ x } content={  x % 50 === 0 ? this.state.counter : 0 } />)
 					}
 				</div>
 			</div>
