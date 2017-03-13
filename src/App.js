@@ -2,6 +2,7 @@ import React, { Component, PureComponent } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import Perf from 'react-addons-perf';
+import { FunctionalItem, PureClassItem, ImpureClassItem } from './Item';
 
 function range(n) {
 	const result = [];
@@ -10,50 +11,6 @@ function range(n) {
 	}
 
 	return result;
-}
-
-const FunctionalItem = ({ content }) => {
-	return <div style={{ display: 'flex', border: '1px solid gray', justifyContent: 'center', alignItems: 'center' }}>{ content }</div>;
-};
-
-class PureClassItem extends PureComponent {
-	constructor(props) {
-		super(props);
-		this.state = { something: 'foo' };
-	}
-
-	componentDidMount() {
-		console.log('Item component did mount');
-	}
-
-	componentWillMount() {
-		console.log('Item component will mount');
-		this.setState({ something: 'bar' });
-	}
-
-	render() {
-		const { content } = this.props;
-		return <div style={{ display: 'flex', border: '1px solid gray' }}>{ content }{ this.state.something }</div>;
-	}
-}
-
-class ImpureClassItem extends Component {
-	constructor(props) {
-		super(props);
-	}
-
-	componentDidMount() {
-		console.log('Item component did mount');
-	}
-
-	componentWillMount() {
-		console.log('Item component will mount');
-	}
-
-	render() {
-		const { content } = this.props;
-		return <div style={{ display: 'flex', border: '1px solid gray' }}>{ content }</div>;
-	}
 }
 
 const functionalHigherOrderComponent = parameter => BaseComponent => {
@@ -95,7 +52,7 @@ const classImpureHigherOrderComponent = parameter => BaseComponent => {
 	return ExtendedComponent;
 };
 
-const squashingHigherOrderComponent = parameter => BaseComponent => {
+const functionalSquashingHigherOrderComponent = parameter => BaseComponent => {
 	const ExtendedComponent = props => {
 		if (typeof BaseComponent === 'function' &&
 			!BaseComponent.defaultProps &&
@@ -106,15 +63,59 @@ const squashingHigherOrderComponent = parameter => BaseComponent => {
 		return new BaseComponent(props);
 	};
 	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `squashingHigherOrderComponent(${baseComponentName})`;
+	ExtendedComponent.displayName = `functionalSquashingHigherOrderComponent[${parameter}](${baseComponentName})`;
 	return ExtendedComponent;
 };
 
-const HOCS_PER_ITEM = 1;
-const NUMBER_OF_ITEMS = 1;
+const classPureSquashingHigherOrderComponent = parameter => BaseComponent => {
+	class ExtendedComponent extends PureComponent {
+		constructor(props) {
+			super(props);
+		}
 
-// const FinalItem = range(HOCS_PER_ITEM).reduce((acc, i) => functionalHigherOrderComponent('something')(acc), PureClassItem);
-const FinalItem = range(HOCS_PER_ITEM).reduce((acc, i) => squashingHigherOrderComponent('something')(acc), PureClassItem);
+		componentDidMount() {
+			console.log('Item component did mount', parameter);
+		}
+
+		componentWillMount() {
+			console.log('Item component will mount', parameter);
+		}
+
+		componentWillUnmount() {
+			console.log('Item component will unmount', parameter);
+		}
+
+		componentDidUpdate() {
+			console.log('Component did update', parameter);
+		}
+
+		render() {
+			if (typeof BaseComponent === 'function' &&
+				!BaseComponent.defaultProps &&
+				!BaseComponent.contextTypes &&
+				!(BaseComponent && BaseComponent.prototype && typeof BaseComponent.prototype.isReactComponent === 'object')) {
+				return BaseComponent(this.props);
+			}
+			const instance = new BaseComponent(this.props);
+			console.log('instance: ', instance);
+			return instance.render(this.props);
+		}
+	}
+
+	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
+	ExtendedComponent.displayName = `classImpureHigherOrderComponent(${baseComponentName})`;
+	return ExtendedComponent;
+}
+
+const HOCS_PER_ITEM = 5;
+const NUMBER_OF_ITEMS = 1;
+const UPDATES = false;
+
+const compose = (...args) => (firstArg) => args.reverse().reduce((acc, f) => f(acc), firstArg);
+
+const FinalItem = compose(
+	...range(HOCS_PER_ITEM).map(i => classPureSquashingHigherOrderComponent(`${i}`))
+)(FunctionalItem);
 
 class App extends Component {
 
@@ -125,10 +126,10 @@ class App extends Component {
 
 	componentDidUpdate() {
 		console.log('App componentDidUpdate');
-		// Perf.stop();
-		// Perf.printInclusive();
-		// Perf.printWasted();
-		// Perf.start();
+		Perf.stop();
+		Perf.printInclusive();
+		Perf.printWasted();
+		Perf.start();
 	}
 
 	componentWillMount() {
@@ -137,10 +138,15 @@ class App extends Component {
 
 	componentDidMount() {
 		console.log('App componentDidMount');
-		// Perf.start();
-		// setInterval(() => {
-		// 	this.setState({ counter: this.state.counter + 1 });
-		// }, 1000);
+		if (UPDATES) {
+			setInterval(() => {
+				this.setState({ counter: this.state.counter + 1 });
+			}, 1000);
+		}
+	}
+
+	cantorKey(x, y) {
+		return 0.5 * (x + y) * (x + y + 1) + y;
 	}
 
 	render() {
@@ -150,9 +156,15 @@ class App extends Component {
 					<img src={logo} className="App-logo" alt="logo" />
 					<h2>Welcome to React</h2>
 				</div>
-				<div className="App-intro" style={{ display: 'block', overflow: 'scroll', columnCount: NUMBER_OF_ITEMS / 10, columnWidth: 50 }}>
+				<div className="App-intro" style={{ display: 'flex', overflow: 'scroll', flexDirection: 'column' }}>
 					{
-						range(NUMBER_OF_ITEMS).map(x => <FinalItem key={ x } content={  x % 50 === 0 ? this.state.counter : 0 } />)
+						range(NUMBER_OF_ITEMS).map(x => {
+							return <div key={ x } style={{ display: 'flex', overflow: 'scroll', flexDirection: 'row' }}>
+								{
+									range(NUMBER_OF_ITEMS).map(y => <FinalItem key={ this.cantorKey(x, y) } content={  x % 50 === 0 ? this.state.counter : 0 } />)
+								}
+							</div>;
+						})
 					}
 				</div>
 			</div>
