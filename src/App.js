@@ -12,18 +12,28 @@ function range(n) {
 	return result;
 }
 
-const PureItem = ({ content }) => {
+const FunctionalItem = ({ content }) => {
 	return <div style={{ display: 'flex', border: '1px solid gray', justifyContent: 'center', alignItems: 'center' }}>{ content }</div>;
 };
 
 class PureClassItem extends PureComponent {
 	constructor(props) {
 		super(props);
+		this.state = { something: 'foo' };
+	}
+
+	componentDidMount() {
+		console.log('Item component did mount');
+	}
+
+	componentWillMount() {
+		console.log('Item component will mount');
+		this.setState({ something: 'bar' });
 	}
 
 	render() {
 		const { content } = this.props;
-		return <div style={{ display: 'flex', border: '1px solid gray' }}>{ content }</div>;
+		return <div style={{ display: 'flex', border: '1px solid gray' }}>{ content }{ this.state.something }</div>;
 	}
 }
 
@@ -32,20 +42,28 @@ class ImpureClassItem extends Component {
 		super(props);
 	}
 
+	componentDidMount() {
+		console.log('Item component did mount');
+	}
+
+	componentWillMount() {
+		console.log('Item component will mount');
+	}
+
 	render() {
 		const { content } = this.props;
 		return <div style={{ display: 'flex', border: '1px solid gray' }}>{ content }</div>;
 	}
 }
 
-const statelessHigherOrderComponent = parameter => BaseComponent => {
+const functionalHigherOrderComponent = parameter => BaseComponent => {
 	const ExtendedComponent = props => <BaseComponent extraProp={ parameter } { ...props } />;
 	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `StatelessHigherOrderComponent(${baseComponentName})`;
+	ExtendedComponent.displayName = `functionalHigherOrderComponent(${baseComponentName})`;
 	return ExtendedComponent;
 }
 
-const statefulPureHigherOrderComponent = parameter => BaseComponent => {
+const classPureHigherOrderComponent = parameter => BaseComponent => {
 	class ExtendedComponent extends PureComponent {
 		constructor(props) {
 			super(props);
@@ -56,10 +74,12 @@ const statefulPureHigherOrderComponent = parameter => BaseComponent => {
 		}
 	}
 
+	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
+	ExtendedComponent.displayName = `classPureHigherOrderComponent(${baseComponentName})`;
 	return ExtendedComponent;
 }
 
-const statefulImpureHigherOrderComponent = parameter => BaseComponent => {
+const classImpureHigherOrderComponent = parameter => BaseComponent => {
 	class ExtendedComponent extends Component {
 		constructor(props) {
 			super(props);
@@ -70,16 +90,31 @@ const statefulImpureHigherOrderComponent = parameter => BaseComponent => {
 		}
 	}
 
+	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
+	ExtendedComponent.displayName = `classImpureHigherOrderComponent(${baseComponentName})`;
 	return ExtendedComponent;
 };
 
 const squashingHigherOrderComponent = parameter => BaseComponent => {
-	return props => BaseComponent(props);
+	const ExtendedComponent = props => {
+		if (typeof BaseComponent === 'function' &&
+			!BaseComponent.defaultProps &&
+			!BaseComponent.contextTypes &&
+			!(BaseComponent && BaseComponent.prototype && typeof BaseComponent.prototype.isReactComponent === 'object')) {
+			return BaseComponent(props);
+		}
+		return new BaseComponent(props);
+	};
+	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
+	ExtendedComponent.displayName = `squashingHigherOrderComponent(${baseComponentName})`;
+	return ExtendedComponent;
 };
 
-const HOCS_PER_ITEM = 10;
-const NUMBER_OF_ITEMS = 1000;
-const FinalItem = range(HOCS_PER_ITEM).reduce((acc, i) => squashingHigherOrderComponent('something')(acc), PureItem);
+const HOCS_PER_ITEM = 1;
+const NUMBER_OF_ITEMS = 1;
+
+// const FinalItem = range(HOCS_PER_ITEM).reduce((acc, i) => functionalHigherOrderComponent('something')(acc), PureClassItem);
+const FinalItem = range(HOCS_PER_ITEM).reduce((acc, i) => squashingHigherOrderComponent('something')(acc), PureClassItem);
 
 class App extends Component {
 
@@ -89,17 +124,23 @@ class App extends Component {
 	}
 
 	componentDidUpdate() {
-		Perf.stop();
-		Perf.printInclusive();
-		Perf.printWasted();
-		Perf.start();
+		console.log('App componentDidUpdate');
+		// Perf.stop();
+		// Perf.printInclusive();
+		// Perf.printWasted();
+		// Perf.start();
+	}
+
+	componentWillMount() {
+		console.log('App componentWillMount');
 	}
 
 	componentDidMount() {
-		Perf.start();
-		setInterval(() => {
-			this.setState({ counter: this.state.counter + 1 });
-		}, 1000);
+		console.log('App componentDidMount');
+		// Perf.start();
+		// setInterval(() => {
+		// 	this.setState({ counter: this.state.counter + 1 });
+		// }, 1000);
 	}
 
 	render() {
