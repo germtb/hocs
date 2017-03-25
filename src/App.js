@@ -13,14 +13,14 @@ function range(n) {
 	return result;
 }
 
-const functionalHigherOrderComponent = parameter => BaseComponent => {
+const functionalHOC = parameter => BaseComponent => {
 	const ExtendedComponent = props => <BaseComponent extraProp={ parameter } { ...props } />;
 	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `functionalHigherOrderComponent(${baseComponentName})`;
+	ExtendedComponent.displayName = `functionalHOC(${baseComponentName})`;
 	return ExtendedComponent;
 }
 
-const classPureHigherOrderComponent = parameter => BaseComponent => {
+const pureClassHOC = parameter => BaseComponent => {
 	class ExtendedComponent extends PureComponent {
 		constructor(props) {
 			super(props);
@@ -32,11 +32,11 @@ const classPureHigherOrderComponent = parameter => BaseComponent => {
 	}
 
 	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `classPureHigherOrderComponent(${baseComponentName})`;
+	ExtendedComponent.displayName = `pureClassHOC(${baseComponentName})`;
 	return ExtendedComponent;
 }
 
-const classImpureHigherOrderComponent = parameter => BaseComponent => {
+const impureClassHOC = parameter => BaseComponent => {
 	class ExtendedComponent extends Component {
 		constructor(props) {
 			super(props);
@@ -48,11 +48,11 @@ const classImpureHigherOrderComponent = parameter => BaseComponent => {
 	}
 
 	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `classImpureHigherOrderComponent(${baseComponentName})`;
+	ExtendedComponent.displayName = `impureClassHOC(${baseComponentName})`;
 	return ExtendedComponent;
 };
 
-const functionalSquashingHigherOrderComponent = parameter => BaseComponent => {
+const functionalSquashingHOC = parameter => BaseComponent => {
 	const ExtendedComponent = props => {
 		if (typeof BaseComponent === 'function' &&
 			!BaseComponent.defaultProps &&
@@ -63,58 +63,65 @@ const functionalSquashingHigherOrderComponent = parameter => BaseComponent => {
 		return new BaseComponent(props);
 	};
 	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `functionalSquashingHigherOrderComponent[${parameter}](${baseComponentName})`;
+	ExtendedComponent.displayName = `functionalSquashingHOC[${parameter}](${baseComponentName})`;
 	return ExtendedComponent;
 };
 
-const classPureSquashingHigherOrderComponent = parameter => BaseComponent => {
+const pureClassSquashingHOC = parameter => BaseComponent => {
 	class ExtendedComponent extends PureComponent {
 		constructor(props) {
 			super(props);
 		}
 
 		componentDidMount() {
-			console.log('Item component did mount', parameter);
+			// console.log('Item component did mount', parameter);
 		}
 
 		componentWillMount() {
-			console.log('Item component will mount', parameter);
+			// console.log('Item component will mount', parameter);
 		}
 
 		componentWillUnmount() {
-			console.log('Item component will unmount', parameter);
+			// console.log('Item component will unmount', parameter);
 		}
 
 		componentDidUpdate() {
-			console.log('Component did update', parameter);
+			// console.log('Component did update', parameter);
 		}
 
 		render() {
+			const props = {
+				...this.props,
+				[parameter]: parameter
+			};
+
 			if (typeof BaseComponent === 'function' &&
-				!BaseComponent.defaultProps &&
-				!BaseComponent.contextTypes &&
-				!(BaseComponent && BaseComponent.prototype && typeof BaseComponent.prototype.isReactComponent === 'object')) {
-				return BaseComponent(this.props);
+				// !BaseComponent.defaultProps &&
+				// !BaseComponent.contextTypes &&
+				!(BaseComponent && BaseComponent.prototype && BaseComponent.prototype.render)) {
+				// !(BaseComponent && BaseComponent.prototype && typeof BaseComponent.prototype.isReactComponent === 'object')) {
+				return BaseComponent(props);
 			}
-			const instance = new BaseComponent(this.props);
-			console.log('instance: ', instance);
-			return instance.render(this.props);
+			const instance = new BaseComponent(props);
+			const renderInstance = instance.render();
+			return renderInstance;
 		}
 	}
 
 	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `classImpureHigherOrderComponent(${baseComponentName})`;
+	ExtendedComponent.displayName = `squashed[${parameter}](${baseComponentName})`;
 	return ExtendedComponent;
 }
 
-const HOCS_PER_ITEM = 5;
-const NUMBER_OF_ITEMS = 1;
-const UPDATES = false;
+const HOCS_PER_ITEM = 100;
+const NUMBER_OF_ITEMS = 20;
+const UPDATES = true;
+const PERIOD = 1000;
 
 const compose = (...args) => (firstArg) => args.reverse().reduce((acc, f) => f(acc), firstArg);
 
 const FinalItem = compose(
-	...range(HOCS_PER_ITEM).map(i => classPureSquashingHigherOrderComponent(`${i}`))
+	...range(HOCS_PER_ITEM).map(i => functionalSquashingHOC(`${i}`))
 )(FunctionalItem);
 
 class App extends Component {
@@ -128,7 +135,7 @@ class App extends Component {
 		console.log('App componentDidUpdate');
 		Perf.stop();
 		Perf.printInclusive();
-		Perf.printWasted();
+		// Perf.printWasted();
 		Perf.start();
 	}
 
@@ -141,7 +148,7 @@ class App extends Component {
 		if (UPDATES) {
 			setInterval(() => {
 				this.setState({ counter: this.state.counter + 1 });
-			}, 1000);
+			}, PERIOD);
 		}
 	}
 
@@ -161,7 +168,7 @@ class App extends Component {
 						range(NUMBER_OF_ITEMS).map(x => {
 							return <div key={ x } style={{ display: 'flex', overflow: 'scroll', flexDirection: 'row' }}>
 								{
-									range(NUMBER_OF_ITEMS).map(y => <FinalItem key={ this.cantorKey(x, y) } content={  x % 50 === 0 ? this.state.counter : 0 } />)
+									range(NUMBER_OF_ITEMS).map(y => <FinalItem key={ this.cantorKey(x, y) } content={  y % 50 === 0 ? this.state.counter : 0 } />)
 								}
 							</div>;
 						})

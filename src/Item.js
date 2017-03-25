@@ -8,8 +8,9 @@ const style = {
 	padding: 10
 };
 
-export const FunctionalItem = ({ content }) => {
-	return <div style={ style }>{ content }</div>;
+export const FunctionalItem = ({ content, ...others }) => {
+	return <div style={ style }>{ content } </div>;
+	// return <div style={ style }>{ content }{ JSON.stringify(others) }</div>;
 };
 
 export class PureClassItem extends PureComponent {
