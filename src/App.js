@@ -52,6 +52,46 @@ const impureClassHOC = parameter => BaseComponent => {
 	return ExtendedComponent;
 };
 
+const withState = initialState => InputComponent => class ExtendedComponent extends React.PureComponent {
+	constructor(props) {
+		super(props);
+		this.state = initialState;
+	}
+
+	render() {
+		return <InputComponent { ...this.props } setState={ this.setState.bind(this) } { ...this.state } />;
+	}
+};
+
+const inheritanceHOC = ({ normalColor, hoverColor }) => BaseComponent => {
+	class ExtendedComponent extends BaseComponent {
+		constructor(props) {
+			super(props);
+			this.state = {
+				backgroundColor: normalColor
+			}
+		}
+
+		onMouseEnter() {
+			this.setState({ backgroundColor: hoverColor });
+		}
+
+		onMouseLeave() {
+			this.setState({ backgroundColor: normalColor });
+		}
+
+		render() {
+			return <div style={ this.state } onMouseEnter={ this.onMouseEnter.bind(this) } onMouseLeave={ this.onMouseLeave.bind(this) }>
+				{ super.render() }
+			</div>;
+		}
+	}
+
+	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
+	ExtendedComponent.displayName = `inheritanceHOC(${baseComponentName})`;
+	return ExtendedComponent;
+};
+
 const functionalSquashingHOC = parameter => BaseComponent => {
 	const ExtendedComponent = props => {
 		if (typeof BaseComponent === 'function' &&
@@ -71,22 +111,6 @@ const pureClassSquashingHOC = parameter => BaseComponent => {
 	class ExtendedComponent extends PureComponent {
 		constructor(props) {
 			super(props);
-		}
-
-		componentDidMount() {
-			// console.log('Item component did mount', parameter);
-		}
-
-		componentWillMount() {
-			// console.log('Item component will mount', parameter);
-		}
-
-		componentWillUnmount() {
-			// console.log('Item component will unmount', parameter);
-		}
-
-		componentDidUpdate() {
-			// console.log('Component did update', parameter);
 		}
 
 		render() {
@@ -113,16 +137,23 @@ const pureClassSquashingHOC = parameter => BaseComponent => {
 	return ExtendedComponent;
 }
 
-const HOCS_PER_ITEM = 100;
+const HOCS_PER_ITEM = 1;
 const NUMBER_OF_ITEMS = 20;
 const UPDATES = true;
 const PERIOD = 1000;
 
 const compose = (...args) => (firstArg) => args.reverse().reduce((acc, f) => f(acc), firstArg);
 
-const FinalItem = compose(
-	...range(HOCS_PER_ITEM).map(i => functionalSquashingHOC(`${i}`))
-)(FunctionalItem);
+// const FinalItem = compose(
+// 	...range(HOCS_PER_ITEM).map(i => inheritanceHOC(`${i}`))
+// )(FunctionalItem);
+
+// const FinalItem = inheritanceHOC({
+// 	normalColor: 'white',
+// 	hoverColor: 'blue'
+// })(PureClassItem);
+
+const FinalItem = withState({ amazingState: 0 })(PureClassItem);
 
 class App extends Component {
 

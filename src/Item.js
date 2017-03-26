@@ -36,7 +36,7 @@ export class PureClassItem extends PureComponent {
 
 	render() {
 		const { content } = this.props;
-		return <div style={ style }>{ content }</div>;
+		return <div style={ style }>{ content } </div>;
 	}
 }
 
