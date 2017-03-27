@@ -231,9 +231,49 @@ Since we separated the view from the state handling, we can test them unit test 
 
 ## Performance and squashing
 
-The last  bit I wanted to talk about is performance and squashing. When using the props proxy implementation of a hoc we are creating new React instances for each hoc we apply. Does this have any cost on us? I performed a little experiment and created a mock website with around a N elements, each one wrapped by M hocs. 10% of the elements rerender every second.
+The last  bit I wanted to talk about is performance and squashing. When using the props proxy implementation of a hoc we are creating new React instance for each hoc we apply. There is a technique called 'squashing' created (as far as I know) by Andrew Clark (redux and recompose guy) that, instead of creating new react instances in each hoc, it just calls the input function without the need of `React.createElement`. It works more or less like this:
 
-The result is that if the hoc inherits `PureComponent` rather than `Component` we get much better results. This is because react is smart and it will not render them when the props that are passed are the same.
+```js
+const squashingHOC = parameter => InputComponent => props => {
+	// transform props in whichever way
+	return InputComponent(props);
+};
+```
 
+But... that doesn't work with classes! So I took it a bit further:
 
-## Questions?
+```js
+const squashingHOC = parameter => InputComponent => props => {
+	// transform props
+	if (isFunctionalComponent(InputComponent)) {
+		return InputComponent(props);
+	}
+
+	return new InputComponent(props);
+};
+```
+
+Does this have any cost on us? I performed a little experiment and created a mock website with around a 500 elements, each one wrapped by 40 hocs. 10% of the elements re-rendered every second.
+
+But there are several kind of hocs and several kind of react components. More specifically, we have functional components and class components, and class themselves can be pure or impure. These gives us several combinations, shown in the following table:
+
+| Inclusive render time[ms] | FunctionalHOC / ImpureClassHOC | PureClassHOC | SquashingFunctionalHOC |
+| :------------- | :------------- | :------------- | :------------- |
+| FuntionalComponent / ImpureClassComponent | 2571 | 102 | 7 |
+| PureComponent | 2133 | 104 | 8 |
+
+| Wasted time[ms] | FunctionalHOC / ImpureClassHOC | PureClassHOC | SquashingFunctionalHOC |
+| :------------- | :------------- | :------------- | :------------- |
+| FuntionalComponent / ImpureClassComponent | 2321 | 0 | 3 |
+| PureComponent | 1948 | 0 | 3 |
+
+But here is a table that makes more sense to me:
+
+| snappiness[emojis] | FunctionalHOC / ImpureClassHOC | PureClassHOC | SquashingFunctionalHOC |
+| :------------- | :------------- | :------------- | :------------- |
+| FuntionalComponent / ImpureClassComponent | :poop: | :star: | :beer: :heart: :rainbow: |
+| PureComponent | :poop: | :smile: :smile: | :sunny: :sparkles: :sparkles: :dizzy: |
+
+The results indicate that impure components are very inefficient compared to pure components. And that is something important to keep in mind, because it's not impurity is bad, impurity has a cost. When a component needs something impure (any side effect), it has to be an impure component. But any other case you are not profiting from impurity, it's ok to fallback to pure components, because they are safer.
+
+If you are wondering why I only squash functional components think what would happen if I squashed class hocs, what would happend to their lifecycles? Well, I tried myself, and you end up needing to manage them yourself, monkey patching them into the child, or thigns like that. It is too much against the framework. Pure class hocs provide a very safe way to compose behaviour when we need classes (that is, lifecycles or state).

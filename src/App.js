@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { Component, PureComponent } from 'react';
 import logo from './logo.svg';
 import './App.css';
@@ -20,8 +21,9 @@ const isFunctionalComponent = (component) => typeof component === 'function' &&
 
 const functionalHOC = parameter => InputComponent => {
 	const ExtendedComponent = props => <InputComponent extraProp={ parameter } { ...props } />;
-	const InputComponentName = InputComponent.displayName || InputComponent.name;
-	ExtendedComponent.displayName = `functionalHOC(${InputComponentName})`;
+
+	// const InputComponentName = InputComponent.displayName || InputComponent.name;
+	// ExtendedComponent.displayName = `functionalHOC(${InputComponentName})`;
 	return ExtendedComponent;
 }
 
@@ -36,8 +38,8 @@ const pureClassHOC = parameter => InputComponent => {
 		}
 	}
 
-	const InputComponentName = InputComponent.displayName || InputComponent.name;
-	ExtendedComponent.displayName = `pureClassHOC(${InputComponentName})`;
+	// const InputComponentName = InputComponent.displayName || InputComponent.name;
+	// ExtendedComponent.displayName = `pureClassHOC(${InputComponentName})`;
 	return ExtendedComponent;
 }
 
@@ -52,8 +54,8 @@ const impureClassHOC = parameter => InputComponent => {
 		}
 	}
 
-	const InputComponentName = InputComponent.displayName || InputComponent.name;
-	ExtendedComponent.displayName = `impureClassHOC(${InputComponentName})`;
+	// const InputComponentName = InputComponent.displayName || InputComponent.name;
+	// ExtendedComponent.displayName = `impureClassHOC(${InputComponentName})`;
 	return ExtendedComponent;
 };
 
@@ -69,8 +71,8 @@ const withState = initialState => InputComponent => {
 		}
 	};
 
-	const InputComponentName = InputComponent.displayName || InputComponent.name;
-	ExtendedComponent.displayName = `withState[${JSON.stringify(initialState)}](${InputComponentName})`;
+	// const InputComponentName = InputComponent.displayName || InputComponent.name;
+	// ExtendedComponent.displayName = `withState[${JSON.stringify(initialState)}](${InputComponentName})`;
 	return ExtendedComponent;
 }
 
@@ -101,23 +103,21 @@ const inheritanceHOC = ({ normalColor, hoverColor }) => InputComponent => {
 		}
 	}
 
-	const InputComponentName = InputComponent.displayName || InputComponent.name;
-	ExtendedComponent.displayName = `pseudoInheritanceHOC(${InputComponentName})`;
+	// const InputComponentName = InputComponent.displayName || InputComponent.name;
+	// ExtendedComponent.displayName = `pseudoInheritanceHOC(${InputComponentName})`;
 	return ExtendedComponent;
 }
 
 const functionalSquashingHOC = parameter => InputComponent => {
 	const ExtendedComponent = props => {
-		if (typeof InputComponent === 'function' &&
-			!InputComponent.defaultProps &&
-			!InputComponent.contextTypes &&
-			!(InputComponent && InputComponent.prototype && typeof InputComponent.prototype.isReactComponent === 'object')) {
+		if (isFunctionalComponent((InputComponent))) {
 			return InputComponent(props);
 		}
 		return new InputComponent(props);
 	};
-	const InputComponentName = InputComponent.displayName || InputComponent.name;
-	ExtendedComponent.displayName = `functionalSquashingHOC[${parameter}](${InputComponentName})`;
+
+	// const InputComponentName = InputComponent.displayName || InputComponent.name;
+	// ExtendedComponent.displayName = `functionalSquashingHOC[${parameter}](${InputComponentName})`;
 	return ExtendedComponent;
 };
 
@@ -133,7 +133,7 @@ const pureClassSquashingHOC = parameter => InputComponent => {
 				[parameter]: parameter
 			};
 
-			if (isFunctionalComponent(InputComponentName)) {
+			if (isFunctionalComponent(InputComponent)) {
 				return InputComponent(props);
 			}
 
@@ -143,26 +143,28 @@ const pureClassSquashingHOC = parameter => InputComponent => {
 		}
 	}
 
-	const InputComponentName = InputComponent.displayName || InputComponent.name;
-	ExtendedComponent.displayName = `squashed[${parameter}](${InputComponentName})`;
+	// const InputComponentName = InputComponent.displayName || InputComponent.name;
+	// ExtendedComponent.displayName = `squashed[${parameter}](${InputComponentName})`;
 	return ExtendedComponent;
 }
 
-const HOCS_PER_ITEM = 1;
-const NUMBER_OF_ITEMS = 20;
+const HOCS_PER_ITEM = 40;
+const NUMBER_OF_ITEMS = 22;
 const UPDATES = true;
 const PERIOD = 1000;
+
+let limit = 0;
 
 const compose = (...args) => (firstArg) => args.reverse().reduce((acc, f) => f(acc), firstArg);
 
 const FinalItem = compose(
-	withState({ amazingState: 0 }),
-	inheritanceHOC({
-		normalColor: 'white',
-		hoverColor: 'blue'
-	}),
-	...range(HOCS_PER_ITEM).map(i => pureClassHOC(`${i}`))
-)(FunctionalItem);
+	// withState({ amazingState: 0 }),
+	// inheritanceHOC({
+	// 	normalColor: 'white',
+	// 	hoverColor: 'blue'
+	// }),
+	...range(HOCS_PER_ITEM).map(i => functionalSquashingHOC(`${i}`))
+)(PureClassItem);
 
 class App extends Component {
 
@@ -173,15 +175,19 @@ class App extends Component {
 
 	componentDidUpdate() {
 		Perf.stop();
-		Perf.printInclusive();
-		Perf.printWasted();
-		Perf.start();
+    Perf.printInclusive();
+    Perf.printWasted();
+		console.log('--------');
 	}
 
 	componentDidMount() {
 		if (UPDATES) {
 			setInterval(() => {
-				this.setState({ counter: this.state.counter + 1 });
+				limit += 1;
+				if (limit <= 20) {
+					Perf.start();
+					this.setState({ counter: this.state.counter + 1 });
+				}
 			}, PERIOD);
 		}
 	}

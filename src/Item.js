@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { Component, PureComponent } from 'react';
 
 const style = {
@@ -8,30 +9,17 @@ const style = {
 	padding: 10
 };
 
-export const FunctionalItem = ({ content, ...others }) => {
+export const FunctionalItem = ({ content }) => {
 	return <div style={ style }>{ content } </div>;
-	// return <div style={ style }>{ content }{ JSON.stringify(others) }</div>;
 };
 
 export class PureClassItem extends PureComponent {
-	constructor(props) {
-		super(props);
+	componentWillMount() {
+		console.log('componentWillMount');
 	}
 
 	componentDidMount() {
-		// console.log('Item component did mount');
-	}
-
-	componentWillMount() {
-		// console.log('Item component will mount');
-	}
-
-	componentWillUnmount() {
-		// console.log('Item component will unmount');
-	}
-
-	componentDidUpdate() {
-		// console.log('Component did update');
+		console.log('componentDidMount');
 	}
 
 	render() {
@@ -43,22 +31,6 @@ export class PureClassItem extends PureComponent {
 export class ImpureClassItem extends Component {
 	constructor(props) {
 		super(props);
-	}
-
-	componentDidMount() {
-		// console.log('Item component did mount');
-	}
-
-	componentWillMount() {
-		// console.log('Item component will mount');
-	}
-
-	componentWillUnmount() {
-		// console.log('Item component will unmount');
-	}
-
-	componentDidUpdate() {
-		// console.log('Component did update');
 	}
 
 	render() {
