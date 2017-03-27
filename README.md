@@ -130,6 +130,8 @@ const ComponentWithHover = withHover({ normalColor: 'white', hoverColor: 'blue' 
 
 This behaviour starts to show the power of hocs. Hover, like many other behaviours, are shared among components, so the ability to extract those behaviours and later compose them together is immensely powerful. In the end we will remain with very simple just-view components, while the hocs will hold most of the smartness of the UI. Also, this is the way radium has been implemented!
 
+There is a big caveat with this technique and that is if the input component is a functional component, this will break because you cannot inherit a function. In order to implement this fool proof it is necessary to check if the input is a function or a class and if necessary fallback to the next method.
+
 ## Proxy props
 
 This is my personal favourite implementation of hocs, since I think it is the more versatile and the one you are more likely to use in any case.

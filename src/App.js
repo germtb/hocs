@@ -13,58 +13,72 @@ function range(n) {
 	return result;
 }
 
-const functionalHOC = parameter => BaseComponent => {
-	const ExtendedComponent = props => <BaseComponent extraProp={ parameter } { ...props } />;
-	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `functionalHOC(${baseComponentName})`;
+const isFunctionalComponent = (component) => typeof component === 'function' &&
+	// !component.defaultProps &&
+	// !component.contextTypes &&
+	!(component && component.prototype && typeof component.prototype.isReactComponent === 'object');
+
+const functionalHOC = parameter => InputComponent => {
+	const ExtendedComponent = props => <InputComponent extraProp={ parameter } { ...props } />;
+	const InputComponentName = InputComponent.displayName || InputComponent.name;
+	ExtendedComponent.displayName = `functionalHOC(${InputComponentName})`;
 	return ExtendedComponent;
 }
 
-const pureClassHOC = parameter => BaseComponent => {
+const pureClassHOC = parameter => InputComponent => {
 	class ExtendedComponent extends PureComponent {
 		constructor(props) {
 			super(props);
 		}
 
 		render() {
-			return <BaseComponent extraProp={ parameter } { ...this.props } />;
+			return <InputComponent extraProp={ parameter } { ...this.props } />;
 		}
 	}
 
-	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `pureClassHOC(${baseComponentName})`;
+	const InputComponentName = InputComponent.displayName || InputComponent.name;
+	ExtendedComponent.displayName = `pureClassHOC(${InputComponentName})`;
 	return ExtendedComponent;
 }
 
-const impureClassHOC = parameter => BaseComponent => {
+const impureClassHOC = parameter => InputComponent => {
 	class ExtendedComponent extends Component {
 		constructor(props) {
 			super(props);
 		}
 
 		render() {
-			return <BaseComponent extraProp={ parameter } { ...this.props } />;
+			return <InputComponent extraProp={ parameter } { ...this.props } />;
 		}
 	}
 
-	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `impureClassHOC(${baseComponentName})`;
+	const InputComponentName = InputComponent.displayName || InputComponent.name;
+	ExtendedComponent.displayName = `impureClassHOC(${InputComponentName})`;
 	return ExtendedComponent;
 };
 
-const withState = initialState => InputComponent => class ExtendedComponent extends React.PureComponent {
-	constructor(props) {
-		super(props);
-		this.state = initialState;
-	}
+const withState = initialState => InputComponent => {
+	class ExtendedComponent extends React.PureComponent {
+		constructor(props) {
+			super(props);
+			this.state = initialState;
+		}
 
-	render() {
-		return <InputComponent { ...this.props } setState={ this.setState.bind(this) } { ...this.state } />;
-	}
-};
+		render() {
+			return <InputComponent { ...this.props } setState={ this.setState.bind(this) } { ...this.state } />;
+		}
+	};
 
-const inheritanceHOC = ({ normalColor, hoverColor }) => BaseComponent => {
-	class ExtendedComponent extends BaseComponent {
+	const InputComponentName = InputComponent.displayName || InputComponent.name;
+	ExtendedComponent.displayName = `withState[${JSON.stringify(initialState)}](${InputComponentName})`;
+	return ExtendedComponent;
+}
+
+const inheritanceHOC = ({ normalColor, hoverColor }) => InputComponent => {
+	const isClass = InputComponent && InputComponent.prototype && InputComponent.prototype.render;
+	const ParentComponent = isClass ? InputComponent : React.PureComponent;
+
+	class ExtendedComponent extends ParentComponent {
 		constructor(props) {
 			super(props);
 			this.state = {
@@ -82,32 +96,32 @@ const inheritanceHOC = ({ normalColor, hoverColor }) => BaseComponent => {
 
 		render() {
 			return <div style={ this.state } onMouseEnter={ this.onMouseEnter.bind(this) } onMouseLeave={ this.onMouseLeave.bind(this) }>
-				{ super.render() }
+				{ isClass ? super.render() : InputComponent(this.props)  }
 			</div>;
 		}
 	}
 
-	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `inheritanceHOC(${baseComponentName})`;
+	const InputComponentName = InputComponent.displayName || InputComponent.name;
+	ExtendedComponent.displayName = `pseudoInheritanceHOC(${InputComponentName})`;
 	return ExtendedComponent;
-};
+}
 
-const functionalSquashingHOC = parameter => BaseComponent => {
+const functionalSquashingHOC = parameter => InputComponent => {
 	const ExtendedComponent = props => {
-		if (typeof BaseComponent === 'function' &&
-			!BaseComponent.defaultProps &&
-			!BaseComponent.contextTypes &&
-			!(BaseComponent && BaseComponent.prototype && typeof BaseComponent.prototype.isReactComponent === 'object')) {
-			return BaseComponent(props);
+		if (typeof InputComponent === 'function' &&
+			!InputComponent.defaultProps &&
+			!InputComponent.contextTypes &&
+			!(InputComponent && InputComponent.prototype && typeof InputComponent.prototype.isReactComponent === 'object')) {
+			return InputComponent(props);
 		}
-		return new BaseComponent(props);
+		return new InputComponent(props);
 	};
-	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `functionalSquashingHOC[${parameter}](${baseComponentName})`;
+	const InputComponentName = InputComponent.displayName || InputComponent.name;
+	ExtendedComponent.displayName = `functionalSquashingHOC[${parameter}](${InputComponentName})`;
 	return ExtendedComponent;
 };
 
-const pureClassSquashingHOC = parameter => BaseComponent => {
+const pureClassSquashingHOC = parameter => InputComponent => {
 	class ExtendedComponent extends PureComponent {
 		constructor(props) {
 			super(props);
@@ -119,21 +133,18 @@ const pureClassSquashingHOC = parameter => BaseComponent => {
 				[parameter]: parameter
 			};
 
-			if (typeof BaseComponent === 'function' &&
-				// !BaseComponent.defaultProps &&
-				// !BaseComponent.contextTypes &&
-				!(BaseComponent && BaseComponent.prototype && BaseComponent.prototype.render)) {
-				// !(BaseComponent && BaseComponent.prototype && typeof BaseComponent.prototype.isReactComponent === 'object')) {
-				return BaseComponent(props);
+			if (isFunctionalComponent(InputComponentName)) {
+				return InputComponent(props);
 			}
-			const instance = new BaseComponent(props);
+
+			const instance = new InputComponent(props);
 			const renderInstance = instance.render();
 			return renderInstance;
 		}
 	}
 
-	const baseComponentName = BaseComponent.displayName || BaseComponent.name;
-	ExtendedComponent.displayName = `squashed[${parameter}](${baseComponentName})`;
+	const InputComponentName = InputComponent.displayName || InputComponent.name;
+	ExtendedComponent.displayName = `squashed[${parameter}](${InputComponentName})`;
 	return ExtendedComponent;
 }
 
@@ -144,16 +155,14 @@ const PERIOD = 1000;
 
 const compose = (...args) => (firstArg) => args.reverse().reduce((acc, f) => f(acc), firstArg);
 
-// const FinalItem = compose(
-// 	...range(HOCS_PER_ITEM).map(i => inheritanceHOC(`${i}`))
-// )(FunctionalItem);
-
-// const FinalItem = inheritanceHOC({
-// 	normalColor: 'white',
-// 	hoverColor: 'blue'
-// })(PureClassItem);
-
-const FinalItem = withState({ amazingState: 0 })(PureClassItem);
+const FinalItem = compose(
+	withState({ amazingState: 0 }),
+	inheritanceHOC({
+		normalColor: 'white',
+		hoverColor: 'blue'
+	}),
+	...range(HOCS_PER_ITEM).map(i => pureClassHOC(`${i}`))
+)(FunctionalItem);
 
 class App extends Component {
 
@@ -163,19 +172,13 @@ class App extends Component {
 	}
 
 	componentDidUpdate() {
-		console.log('App componentDidUpdate');
 		Perf.stop();
 		Perf.printInclusive();
-		// Perf.printWasted();
+		Perf.printWasted();
 		Perf.start();
 	}
 
-	componentWillMount() {
-		console.log('App componentWillMount');
-	}
-
 	componentDidMount() {
-		console.log('App componentDidMount');
 		if (UPDATES) {
 			setInterval(() => {
 				this.setState({ counter: this.state.counter + 1 });
