@@ -14,14 +14,6 @@ export const FunctionalItem = ({ content }) => {
 };
 
 export class PureItem extends PureComponent {
-	componentWillMount() {
-		// console.log('componentWillMount');
-	}
-
-	componentDidMount() {
-		// console.log('componentDidMount');
-	}
-
 	render() {
 		const { content } = this.props;
 		return <div style={ style }>{ content } </div>;
@@ -29,10 +21,6 @@ export class PureItem extends PureComponent {
 }
 
 export class ImpureItem extends Component {
-	constructor(props) {
-		super(props);
-	}
-
 	render() {
 		const { content } = this.props;
 		return <div style={ style }>{ content }</div>;

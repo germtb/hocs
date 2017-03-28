@@ -15,67 +15,41 @@ function range(n) {
 }
 
 const isFunctionalComponent = (component) => typeof component === 'function' &&
-	// !component.defaultProps &&
-	// !component.contextTypes &&
+	// !component.defaultProps && // I don't think this is necessary, but it is used in recompose
+	// !component.contextTypes && // If you don't mutate the context, you don't need this
 	!(component && component.prototype && typeof component.prototype.isReactComponent === 'object');
 
-const functionalHOC = parameter => InputComponent => {
-	const ExtendedComponent = props => <InputComponent extraProp={ parameter } { ...props } />;
-
-	// const InputComponentName = InputComponent.displayName || InputComponent.name;
-	// ExtendedComponent.displayName = `functionalHOC(${InputComponentName})`;
-	return ExtendedComponent;
-}
-
-const pureHOC = parameter => InputComponent => {
-	class ExtendedComponent extends PureComponent {
-		constructor(props) {
-			super(props);
-		}
-
-		render() {
-			return <InputComponent extraProp={ parameter } { ...this.props } />;
-		}
+const pureHOC = parameter => InputComponent => class ExtendedComponent extends PureComponent {
+	constructor(props) {
+		super(props);
 	}
 
-	// const InputComponentName = InputComponent.displayName || InputComponent.name;
-	// ExtendedComponent.displayName = `pureHOC(${InputComponentName})`;
-	return ExtendedComponent;
-}
-
-const impureHOC = parameter => InputComponent => {
-	class ExtendedComponent extends Component {
-		constructor(props) {
-			super(props);
-		}
-
-		render() {
-
-			return <InputComponent extraProp={ parameter } { ...this.props } />;
-		}
+	render() {
+		return <InputComponent extraProp={ parameter } { ...this.props } />;
 	}
-
-	// const InputComponentName = InputComponent.displayName || InputComponent.name;
-	// ExtendedComponent.displayName = `impureHOC(${InputComponentName})`;
-	return ExtendedComponent;
 };
 
-const withState = initialState => InputComponent => {
-	class ExtendedComponent extends React.PureComponent {
-		constructor(props) {
-			super(props);
-			this.state = initialState;
-		}
+const impureHOC = parameter => InputComponent => class ExtendedComponent extends Component {
+	constructor(props) {
+		super(props);
+	}
 
-		render() {
-			return <InputComponent { ...this.props } setState={ this.setState.bind(this) } { ...this.state } />;
-		}
-	};
+	render() {
 
-	// const InputComponentName = InputComponent.displayName || InputComponent.name;
-	// ExtendedComponent.displayName = `withState[${JSON.stringify(initialState)}](${InputComponentName})`;
-	return ExtendedComponent;
-}
+		return <InputComponent extraProp={ parameter } { ...this.props } />;
+	}
+};
+
+const withState = initialState => InputComponent => class ExtendedComponent extends React.PureComponent {
+	constructor(props) {
+		super(props);
+		this.state = initialState;
+	}
+
+	render() {
+		return <InputComponent { ...this.props } setState={ this.setState.bind(this) } { ...this.state } />;
+	}
+};
 
 const inheritanceHOC = ({ normalColor, hoverColor }) => InputComponent => {
 	const isClass = !isFunctionalComponent(InputComponent);
@@ -104,53 +78,15 @@ const inheritanceHOC = ({ normalColor, hoverColor }) => InputComponent => {
 		}
 	}
 
-	// const InputComponentName = InputComponent.displayName || InputComponent.name;
-	// ExtendedComponent.displayName = `inheritanceHOC(${InputComponentName})`;
 	return ExtendedComponent;
 }
 
-const squashingImpureHOC = parameter => InputComponent => {
-	class ExtendedComponent extends Component {
-		constructor(props) {
-			super(props);
-		}
-
-		render() {
-			if (isFunctionalComponent((InputComponent))) {
-				return InputComponent(props);
-			}
-			return <InputComponent extraProp={ parameter } { ...this.props } />;
-		}
+const squashingHOC = parameter => InputComponent => props => {
+	if (isFunctionalComponent(InputComponent)) {
+		return InputComponent(props);
 	}
 
-	// const InputComponentName = InputComponent.displayName || InputComponent.name;
-	// ExtendedComponent.displayName = `impureHOC(${InputComponentName})`;
-	return ExtendedComponent;
-};
-
-const squashingPureHOC = parameter => InputComponent => {
-	class ExtendedComponent extends PureComponent {
-		constructor(props) {
-			super(props);
-		}
-
-		render() {
-			const props = {
-				...this.props,
-				[parameter]: parameter
-			};
-
-			if (isFunctionalComponent(InputComponent)) {
-				return InputComponent(props);
-			}
-
-			return <InputComponent extraProp={ parameter } { ...this.props } />;
-		}
-	}
-
-	// const InputComponentName = InputComponent.displayName || InputComponent.name;
-	// ExtendedComponent.displayName = `squashed[${parameter}](${InputComponentName})`;
-	return ExtendedComponent;
+	return <InputComponent extraProp={ parameter } { ...props } />;
 }
 
 const HOCS_PER_ITEM = 40;
@@ -166,7 +102,7 @@ const FinalItem = compose(
 	// withState({ amazingState: 0 }),
 	// inheritanceHOC({ normalColor: 'white', hoverColor: 'blue' }),
 	// functionalSquashingHOC('hello')
-	...range(HOCS_PER_ITEM).map(i => squashingImpureHOC(`${i}`))
+	...range(HOCS_PER_ITEM).map(i => impureHOC(`${i}`))
 )(ImpureItem);
 
 class App extends Component {
@@ -178,8 +114,8 @@ class App extends Component {
 
 	componentDidUpdate() {
 		Perf.stop();
-    Perf.printInclusive();
-    Perf.printWasted();
+		Perf.printInclusive();
+		Perf.printWasted();
 		console.log('--------');
 	}
 
