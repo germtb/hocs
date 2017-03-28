@@ -194,10 +194,11 @@ const withState = initialState => InputComponent => class ExtendedComponent exte
 	}
 };
 
-const AmazingPonyView = withState({ pony: 'Cinnamon' })(DullPonyView)
+const DullRaptorView = ({ setState, raptor }) => <div onClick={
+	setState({ raptor: `Don't touch ${raptor}!`})
+}>{ raptor }</div>;
 
-const DullPonyView = ({ setState, pony }) => <div onClick={ setState({ pony: `Don't touch ${pony}!`})}>{ pony }</div>;
-
+const AmazingRaptorView = withState({ raptor: 'Cinnamon' })(DullRaptorView);
 ```
 
 This hoc is really cool because it means that you no longer need make a functional component into a class just because you need local state. This hoc abstracts that from you and you can then just consume it as props. As I said before, we see how more and more from our app can be moved into hocs.
@@ -215,13 +216,13 @@ Since the classes created by a hoc are dynamically created, `hoc(Somethign)` wil
 How do we handle test with hocs? The truth is that hocs make testing much easier. You can test each of your hocs in isolation, with mocked input components. Then you should test the plain component also in isolation, mocking the props that would normally be passed by the hocs. This gives us total control over the test. See this example.
 
 ```js
-import { DullPonyView } from './cool-path';
+import { DullRaptorView } from './cool-path';
 
-describe('DullPonyView', () => {
-	it('should render a pony', () => {
-		const pony = 'Sparkles';
-		const output = enzyme.render(<DullPonyView pony={ pony } />);
-		expect(output).find('div').to.have.text(pony);
+describe('DullRaptorView', () => {
+	it('should render a raptor', () => {
+		const raptor = 'Sparkles';
+		const output = enzyme.render(<DullRaptorView raptor={ raptor } />);
+		expect(output).find('div').to.have.text(raptor);
 	});
 });
 
@@ -240,7 +241,7 @@ const squashingHOC = parameter => InputComponent => props => {
 };
 ```
 
-But... that doesn't work with classes! So I took it a bit further:
+But... that doesn't work with classes! So we need to take that into account
 
 ```js
 const squashingHOC = parameter => InputComponent => props => {
@@ -249,30 +250,30 @@ const squashingHOC = parameter => InputComponent => props => {
 		return InputComponent(props);
 	}
 
-	return new InputComponent(props);
+	return <InputComponent { ...props } />;
 };
 ```
 
 Does this have any cost on us? I performed a little experiment and created a mock website with around a 500 elements, each one wrapped by 40 hocs. 10% of the elements re-rendered every second.
 
-But there are several kind of hocs and several kind of react components. More specifically, we have functional components and class components, and class themselves can be pure or impure. These gives us several combinations, shown in the following table:
+But there are several kind of hocs and several kind of react components. More specifically, we have pure and impure and class components. If a component is functional it behaves like an impure class.
 
-| Inclusive render time[ms] | FunctionalHOC / ImpureClassHOC | PureClassHOC | SquashingFunctionalHOC |
-| :------------- | :------------- | :------------- | :------------- |
-| FuntionalComponent / ImpureClassComponent | 2571 | 102 | 7 |
-| PureComponent | 2133 | 104 | 8 |
+| Inclusive render time[ms] | Impure HOC | Squashing Impure HOC | Pure HOC | Squashing Pure HOC |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| Impure Item | 2571 | ? | 102 | ? |
+| Pure Item | 2133 | ? | 104 | ? |
 
-| Wasted time[ms] | FunctionalHOC / ImpureClassHOC | PureClassHOC | SquashingFunctionalHOC |
-| :------------- | :------------- | :------------- | :------------- |
-| FuntionalComponent / ImpureClassComponent | 2321 | 0 | 3 |
-| PureComponent | 1948 | 0 | 3 |
+| Inclusive render time[ms] | Impure HOC | Squashing Impure HOC | Pure HOC | Squashing Pure HOC |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| Impure Item | 2321 | ? | 0 | ? |
+| Pure Item | 1948 | ? | 0 | ? |
 
 But here is a table that makes more sense to me:
 
-| snappiness[emojis] | FunctionalHOC / ImpureClassHOC | PureClassHOC | SquashingFunctionalHOC |
-| :------------- | :------------- | :------------- | :------------- |
-| FuntionalComponent / ImpureClassComponent | :poop: | :star: | :beer: :heart: :rainbow: |
-| PureComponent | :poop: | :smile: :smile: | :sunny: :sparkles: :sparkles: :dizzy: |
+| snappiness[emojis] | Impure HOC | Squashing Impure HOC | Pure HOC | Squashing Pure HOC |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| Impure Item | :poop: | ? | :beer: :heart: :rainbow: | :beer: :heart: :rainbow: | ? |
+| Pure Item | :poop: | ? | :sunny: :sparkles: :sparkles: :dizzy: | :beer: :heart: :rainbow: | ? |
 
 The results indicate that impure components are very inefficient compared to pure components. And that is something important to keep in mind, because it's not impurity is bad, impurity has a cost. When a component needs something impure (any side effect), it has to be an impure component. But any other case you are not profiting from impurity, it's ok to fallback to pure components, because they are safer.
 

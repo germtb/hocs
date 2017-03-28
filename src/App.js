@@ -3,7 +3,7 @@ import React, { Component, PureComponent } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import Perf from 'react-addons-perf';
-import { FunctionalItem, PureClassItem, ImpureClassItem } from './Item';
+import { FunctionalItem, PureItem, ImpureItem } from './Item';
 
 function range(n) {
 	const result = [];
@@ -27,7 +27,7 @@ const functionalHOC = parameter => InputComponent => {
 	return ExtendedComponent;
 }
 
-const pureClassHOC = parameter => InputComponent => {
+const pureHOC = parameter => InputComponent => {
 	class ExtendedComponent extends PureComponent {
 		constructor(props) {
 			super(props);
@@ -39,23 +39,24 @@ const pureClassHOC = parameter => InputComponent => {
 	}
 
 	// const InputComponentName = InputComponent.displayName || InputComponent.name;
-	// ExtendedComponent.displayName = `pureClassHOC(${InputComponentName})`;
+	// ExtendedComponent.displayName = `pureHOC(${InputComponentName})`;
 	return ExtendedComponent;
 }
 
-const impureClassHOC = parameter => InputComponent => {
+const impureHOC = parameter => InputComponent => {
 	class ExtendedComponent extends Component {
 		constructor(props) {
 			super(props);
 		}
 
 		render() {
+
 			return <InputComponent extraProp={ parameter } { ...this.props } />;
 		}
 	}
 
 	// const InputComponentName = InputComponent.displayName || InputComponent.name;
-	// ExtendedComponent.displayName = `impureClassHOC(${InputComponentName})`;
+	// ExtendedComponent.displayName = `impureHOC(${InputComponentName})`;
 	return ExtendedComponent;
 };
 
@@ -77,7 +78,7 @@ const withState = initialState => InputComponent => {
 }
 
 const inheritanceHOC = ({ normalColor, hoverColor }) => InputComponent => {
-	const isClass = InputComponent && InputComponent.prototype && InputComponent.prototype.render;
+	const isClass = !isFunctionalComponent(InputComponent);
 	const ParentComponent = isClass ? InputComponent : React.PureComponent;
 
 	class ExtendedComponent extends ParentComponent {
@@ -104,24 +105,30 @@ const inheritanceHOC = ({ normalColor, hoverColor }) => InputComponent => {
 	}
 
 	// const InputComponentName = InputComponent.displayName || InputComponent.name;
-	// ExtendedComponent.displayName = `pseudoInheritanceHOC(${InputComponentName})`;
+	// ExtendedComponent.displayName = `inheritanceHOC(${InputComponentName})`;
 	return ExtendedComponent;
 }
 
-const functionalSquashingHOC = parameter => InputComponent => {
-	const ExtendedComponent = props => {
-		if (isFunctionalComponent((InputComponent))) {
-			return InputComponent(props);
+const squashingImpureHOC = parameter => InputComponent => {
+	class ExtendedComponent extends Component {
+		constructor(props) {
+			super(props);
 		}
-		return new InputComponent(props);
-	};
+
+		render() {
+			if (isFunctionalComponent((InputComponent))) {
+				return InputComponent(props);
+			}
+			return <InputComponent extraProp={ parameter } { ...this.props } />;
+		}
+	}
 
 	// const InputComponentName = InputComponent.displayName || InputComponent.name;
-	// ExtendedComponent.displayName = `functionalSquashingHOC[${parameter}](${InputComponentName})`;
+	// ExtendedComponent.displayName = `impureHOC(${InputComponentName})`;
 	return ExtendedComponent;
 };
 
-const pureClassSquashingHOC = parameter => InputComponent => {
+const squashingPureHOC = parameter => InputComponent => {
 	class ExtendedComponent extends PureComponent {
 		constructor(props) {
 			super(props);
@@ -137,9 +144,7 @@ const pureClassSquashingHOC = parameter => InputComponent => {
 				return InputComponent(props);
 			}
 
-			const instance = new InputComponent(props);
-			const renderInstance = instance.render();
-			return renderInstance;
+			return <InputComponent extraProp={ parameter } { ...this.props } />;
 		}
 	}
 
@@ -159,12 +164,10 @@ const compose = (...args) => (firstArg) => args.reverse().reduce((acc, f) => f(a
 
 const FinalItem = compose(
 	// withState({ amazingState: 0 }),
-	// inheritanceHOC({
-	// 	normalColor: 'white',
-	// 	hoverColor: 'blue'
-	// }),
-	...range(HOCS_PER_ITEM).map(i => functionalSquashingHOC(`${i}`))
-)(PureClassItem);
+	// inheritanceHOC({ normalColor: 'white', hoverColor: 'blue' }),
+	// functionalSquashingHOC('hello')
+	...range(HOCS_PER_ITEM).map(i => squashingImpureHOC(`${i}`))
+)(ImpureItem);
 
 class App extends Component {
 

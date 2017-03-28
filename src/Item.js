@@ -13,13 +13,13 @@ export const FunctionalItem = ({ content }) => {
 	return <div style={ style }>{ content } </div>;
 };
 
-export class PureClassItem extends PureComponent {
+export class PureItem extends PureComponent {
 	componentWillMount() {
-		console.log('componentWillMount');
+		// console.log('componentWillMount');
 	}
 
 	componentDidMount() {
-		console.log('componentDidMount');
+		// console.log('componentDidMount');
 	}
 
 	render() {
@@ -28,7 +28,7 @@ export class PureClassItem extends PureComponent {
 	}
 }
 
-export class ImpureClassItem extends Component {
+export class ImpureItem extends Component {
 	constructor(props) {
 		super(props);
 	}
