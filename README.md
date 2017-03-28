@@ -264,23 +264,31 @@ Does this have any cost on us? I performed a little experiment and created a moc
 
 But there are several kind of hocs and several kind of react components. More specifically, we have pure and impure and class components. If a component is functional it behaves like an impure class.
 
-| Inclusive render time[ms] | Impure HOC | Squashing Impure HOC | Pure HOC | Squashing Pure HOC |
-| :------------- | :------------- | :------------- | :------------- | :------------- |
-| Impure Item | 2571 | ? | 102 | ? |
-| Pure Item | 2133 | ? | 104 | ? |
+| Inclusive render time[ms] | Impure HOC | Pure HOC | Squashing HOC |
+| :-------------  | :------------- | :------------- | :------------- |
+| Impure Item     | ~2000          | ~100           | ~15            |
+| Pure Item       | ~2000          | ~100           | ~10            |
+| Functional Item | ~2000          | ~100           | ~5             |
 
-| Inclusive render time[ms] | Impure HOC | Squashing Impure HOC | Pure HOC | Squashing Pure HOC |
-| :------------- | :------------- | :------------- | :------------- | :------------- |
-| Impure Item | 2321 | ? | 0 | ? |
-| Pure Item | 1948 | ? | 0 | ? |
+| Inclusive render time[ms] | Impure HOC | Pure HOC | Squashing HOC |
+| :-------------  | :------------- | :------------- | :------------- |
+| Impure Item     | ~2000          | 0              | ~5             |
+| Pure Item       | ~2000          | 0              | ~4             |
+| Functional Item | ~2000          | 0              | ~3             |
+
 
 But here is a table that makes more sense to me:
 
-| snappiness[emojis] | Impure HOC | Squashing Impure HOC | Pure HOC | Squashing Pure HOC |
-| :------------- | :------------- | :------------- | :------------- | :------------- |
-| Impure Item | :poop: | ? | :beer: :heart: :rainbow: | :beer: :heart: :rainbow: | ? |
-| Pure Item | :poop: | ? | :sunny: :sparkles: :sparkles: :dizzy: | :beer: :heart: :rainbow: | ? |
+| snappiness[emojis] | Impure HOC | Pure HOC | Squashing HOC |
+| :-------------  | :------------- | :------------- | :------------- |
+| Impure Item     | :poop:         | :star:         | :sparkles: :star: |
+| Pure Item       | :poop:         | :star:         | :sparkles: :star: |
+| Functional Item | :poop:         | :star:         | :sparkles: :star: |
 
-The results indicate that impure components are very inefficient compared to pure components. And that is something important to keep in mind, because it's not impurity is bad, impurity has a cost. When a component needs something impure (any side effect), it has to be an impure component. But any other case you are not profiting from impurity, it's ok to fallback to pure components, because they are safer.
+This results show:
+- Pure is much more efficient than impure
+- Use functions whenever possible!
+
+Impure components are very inefficient compared to pure components. And it's not impurity is bad, impurity has a cost. When a component needs something impure, it has to be an impure component. But any other case you are not profiting from impurity, it's good to fallback to pure components.
 
 If you are wondering why I only squash functional components think what would happen if I squashed class hocs, what would happend to their lifecycles? Well, I tried myself, and you end up needing to manage them yourself, monkey patching them into the child, or thigns like that. It is too much against the framework. Pure class hocs provide a very safe way to compose behaviour when we need classes (that is, lifecycles or state).
