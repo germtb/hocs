@@ -16,12 +16,12 @@ The name is derived from the concept of higher order function, which is a functi
 
 Take for example a list item component:
 ```js
-const ListItem = ({ key, content }) => <div key={key} >{ content }</div>;
+const ListItem = ({ key, content }) => <div key={ key } >{ content }</div>;
 ```
 
 How is it different than a function? Ah, yeah, there is something:
 ```js
-const listItem = ({ key, content }) => <div key={key} >{ content }</div>;
+const listItem = ({ key, content }) => <div key={ key } >{ content }</div>;
 ```
 
 ---
@@ -46,29 +46,29 @@ So, in reality any function with the typing `Component => Component` is a higher
 
 ```js
 const onClick = x => x; // Do fun stuff
-const myFirstHOC = Component => props => {
+// This is a Hoc
+const withClick = Component => props => {
 	return <button onClick={ onClick } >
 		<Component {...props } />
 	<button>;
 };
 
-// Example use
-const CoolComponent = ({ title, description }) => {
+const DumbComponent = ({ title, description }) => {
 	return <div>
 		<div>{ title }</div>
 		<div>{ description }</div>
 	</div>;
 };
 
-const EnhancedCoolComponent = myFirstHOC(CoolComponent);
+const ClickableComponent = withClick(DumbComponent);
 
-// Use it like
-<EnhancedCoolComponent title='HELLO' description='This is obviously a description'/>
+// Now it is clickable!
+<ClickableComponent title='HELLO' description='This is obviously a description'/>
 ```
 That's cool! But that hoc is not really that reusable, after all it will only work if you want a component to call that specific on click handler. Can we improve this? YES, WE PARAMETRISE.
 
 ```js
-const mySecondHOC = onClick => Component => props => {
+const withClick = onClick => Component => props => {
 	return <button onClick={ onClick } >
 		<Component {...props } />
 	<button>;
@@ -134,7 +134,7 @@ There is a big caveat with this technique and that is if the input component is 
 
 ## Proxy props
 
-This is my personal favourite implementation of hocs, since I think it is the more versatile and the one you are more likely to use in any case.
+This is the most powerful hoc implementation, since I it works just the same with functions and classes.
 
 ```js
 const withSomethingFromContext = InputComponent => {
@@ -158,7 +158,8 @@ This implementation is based on creating a new React component that returns rend
 - Add extra props
 - Modify props
 - Handle state
-- Add life cycles (also available with an inheritanc hoc)
+- Add life cycles
+- Decorate render
 
 ```js
 const connect = mapStateToProps => InputComponent => {
@@ -175,6 +176,9 @@ const connect = mapStateToProps => InputComponent => {
 		};
 	}
 
+	// I am omitting display name in other cases but it is very important!
+	const InputComponentName = InputComponent.displayName || InputComponent.name;
+	ExtendedComponent.displayName = `connected(${InputComponentName})`;
 	ExtendedComponent.contextTypes = { store: React.PropTypes.object };
 	return ExtendedComponent;
 };
@@ -194,9 +198,11 @@ const withState = initialState => InputComponent => class ExtendedComponent exte
 	}
 };
 
-const DullRaptorView = ({ setState, raptor }) => <div onClick={
-	setState({ raptor: `Don't touch ${raptor}!`})
-}>{ raptor }</div>;
+const DullRaptorView = ({ setState, raptor }) => {
+	return <div onClick={ setState({ raptor: `Don't touch ${raptor}!`}) }>
+		{ raptor }
+	</div>;
+};
 
 const AmazingRaptorView = withState({ raptor: 'Cinnamon' })(DullRaptorView);
 ```
@@ -245,7 +251,7 @@ But... that doesn't work with classes! So we need to take that into account
 
 ```js
 const squashingHOC = parameter => InputComponent => props => {
-	// transform props
+	// transform props in whichever way
 	if (isFunctionalComponent(InputComponent)) {
 		return InputComponent(props);
 	}
