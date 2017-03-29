@@ -31,8 +31,8 @@ JSX problems
 What should React render in this case?
 ```js
 function Main() {
-	const p = () => <div />;
-	return <p />;
+  const p = () => <div />;
+  return <p />;
 }
 ```
 
@@ -45,33 +45,33 @@ Since we know how to use higher order functions to compose functions, and we kno
 So, in reality any function with the typing `Component => Component` is a higher order component, let's see an example:
 
 ```js
-const onClick = x => x; // Do fun stuff
+const onClick = () => // Do fun stuff
 // This is a Hoc
 const withClick = Component => props => {
-	return <button onClick={ onClick } >
-		<Component {...props } />
-	<button>;
+  return <button onClick={ onClick } >
+    <Component {...props } />
+  <button>;
 };
 
 const DumbComponent = ({ title, description }) => {
-	return <div>
-		<div>{ title }</div>
-		<div>{ description }</div>
-	</div>;
+  return <div>
+  <div>{ title }</div>
+    <div>{ description }</div>
+  </div>;
 };
 
 const ClickableComponent = withClick(DumbComponent);
 
 // Now it is clickable!
-<ClickableComponent title='HELLO' description='This is obviously a description'/>
+<ClickableComponent title='foo' description='bar'/>
 ```
 That's cool! But that hoc is not really that reusable, after all it will only work if you want a component to call that specific on click handler. Can we improve this? YES, WE PARAMETRISE.
 
 ```js
 const withClick = onClick => Component => props => {
-	return <button onClick={ onClick } >
-		<Component {...props } />
-	<button>;
+  return <button onClick={ onClick } >
+    <Component {...props } />
+  <button>;
 };
 ```
 This can have different names, all of them very fancy: parametrised hoc, higher order hoc, hoc factory... But you'll see this pattern is so prevalent that it is often just referred as hoc.
@@ -88,12 +88,12 @@ The hoc takes a component and then modifies it. This is not a good idea: several
 
 ```js
 const onRender = InputComponent => {
-	InputComponent.prototype.render = () => {
-		console.log('Render happening now!');
-		return InputComponent.prototype.render();
-	};
+  InputComponent.prototype.render = () => {
+    console.log('Render happening now!');
+    return InputComponent.prototype.render();
+  };
 
-	return InputComponent;
+  return InputComponent;
 };
 ```
 
@@ -103,26 +103,26 @@ Inherit the input component to extend its behaviour
 
 ```js
 const withHover = ({ normalColor, hoverColor }) => InputComponent => class ExtendedComponent extends InputComponent {
-	constructor(props) {
-		super(props);
-		this.state = {
-			backgroundColor: normalColor
-		}
-	}
+  constructor(props) {
+    super(props);
+    this.state = {
+      backgroundColor: normalColor
+    }
+  }
 
-	onMouseEnter() {
-		this.setState({ backgroundColor: hoverColor });
-	}
+  onMouseEnter() {
+    this.setState({ backgroundColor: hoverColor });
+  }
 
-	onMouseLeave() {
-		this.setState({ backgroundColor: normalColor });
-	}
+  onMouseLeave() {
+    this.setState({ backgroundColor: normalColor });
+  }
 
-	render() {
-		return <div style={ this.state } onMouseEnter={ this.onMouseEnter.bind(this) } onMouseLeave={ this.onMouseLeave.bind(this) }>
-			{ super.render() }
-		</div>;
-	}
+  render() {
+    return <div style={ this.state } onMouseEnter={ this.onMouseEnter.bind(this) } onMouseLeave={ this.onMouseLeave.bind(this) }>
+      { super.render() }
+    </div>;
+  }
 };
 
 const ComponentWithHover = withHover({ normalColor: 'white', hoverColor: 'blue' })(Component);
@@ -137,20 +137,19 @@ There is a big caveat with this technique and that is if the input component is 
 This is the most powerful hoc implementation, since I it works just the same with functions and classes.
 
 ```js
-const withSomethingFromContext = InputComponent => {
-	class ExtendedComponent extends React.Component {
-		constructor(props, context) {
-			super(props, context);
-			this.somethingFromContext = this.context.somethingFromContext;
-		}
+const withGlobalThing = InputComponent => {
+  class ExtendedComponent extends React.Component {
+    constructor(props, context) {
+      super(props, context);
+      this.globalThing = this.context.globalThing;
+    }
 
-		render() {
-			return <InputComponent { ...this.props } somethingFromContext={ somethingFromContext } />;
-		};
-	}
+    render() {
+      return <InputComponent { ...this.props } globalThing={ globalThing } />;
+    };
+  }
 
-	ExtendedComponent.contextTypes = { somethingFromContext: React.PropTypes.object };
-	return ExtendedComponent;
+  return ExtendedComponent;
 }
 ```
 
@@ -163,24 +162,24 @@ This implementation is based on creating a new React component that returns rend
 
 ```js
 const connect = mapStateToProps => InputComponent => {
-	class ExtendedComponent extends React.Component {
-		constructor(props, context) {
-			super(props, context);
-			this.store = this.context.store;
-			this.state = mapStateToProps(this.store.getState());
-			this.store.subscribe(state => setState(mapStateToProps(state)));
-		}
+  class ExtendedComponent extends React.Component {
+    constructor(props, context) {
+      super(props, context);
+      this.store = this.context.store;
+      this.state = mapStateToProps(this.store.getState());
+      this.store.subscribe(state => setState(mapStateToProps(state)));
+    }
 
-		render() {
-			return <InputComponent { ...this.props } { ...this.state } />;
-		};
-	}
+    render() {
+      return <InputComponent { ...this.props } { ...this.state } />;
+    };
+  }
 
-	// I am omitting display name in other cases but it is very important!
-	const InputComponentName = InputComponent.displayName || InputComponent.name;
-	ExtendedComponent.displayName = `connected(${InputComponentName})`;
-	ExtendedComponent.contextTypes = { store: React.PropTypes.object };
-	return ExtendedComponent;
+  // I am omitting display name in other cases but it is very important!
+  const InputComponentName = InputComponent.displayName || InputComponent.name;
+  ExtendedComponent.displayName = `connected(${InputComponentName})`;
+  ExtendedComponent.contextTypes = { store: React.PropTypes.object };
+  return ExtendedComponent;
 };
 ```
 
@@ -188,20 +187,20 @@ And that is more or less react-redux. Now let's see an example of how to get rid
 
 ```js
 const withState = initialState => InputComponent => class ExtendedComponent extends React.PureComponent {
-	constructor(props) {
-		super(props);
-		this.state = initialState;
-	}
+  constructor(props) {
+    super(props);
+    this.state = initialState;
+  }
 
-	render() {
-		return <InputComponent { ...this.props } setState={ this.setState.bind(this) } { ...this.state } />;
-	}
+  render() {
+    return <InputComponent { ...this.props } setState={ this.setState.bind(this) } { ...this.state } />;
+  }
 };
 
 const DullRaptorView = ({ setState, raptor }) => {
-	return <div onClick={ setState({ raptor: `Don't touch ${raptor}!`}) }>
-		{ raptor }
-	</div>;
+  return <div onClick={ setState({ raptor: `Don't touch ${raptor}!`}) }>
+    { raptor }
+  </div>;
 };
 
 const AmazingRaptorView = withState({ raptor: 'Cinnamon' })(DullRaptorView);
@@ -225,11 +224,11 @@ How do we handle test with hocs? The truth is that hocs make testing much easier
 import { DullRaptorView } from './cool-path';
 
 describe('DullRaptorView', () => {
-	it('should render a raptor', () => {
-		const raptor = 'Sparkles';
-		const output = enzyme.render(<DullRaptorView raptor={ raptor } />);
-		expect(output).find('div').to.have.text(raptor);
-	});
+  it('should render a raptor', () => {
+    const raptor = 'Sparkles';
+    const output = enzyme.render(<DullRaptorView raptor={ raptor } />);
+    expect(output).find('div').to.have.text(raptor);
+  });
 });
 
 ```
@@ -242,8 +241,8 @@ The last  bit I wanted to talk about is performance and squashing. When using th
 
 ```js
 const squashingHOC = parameter => InputComponent => props => {
-	// transform props in whichever way
-	return InputComponent(props);
+  // transform props in whichever way
+  return InputComponent(props);
 };
 ```
 
@@ -251,12 +250,12 @@ But... that doesn't work with classes! So we need to take that into account
 
 ```js
 const squashingHOC = parameter => InputComponent => props => {
-	// transform props in whichever way
-	if (isFunctionalComponent(InputComponent)) {
-		return InputComponent(props);
-	}
+  // transform props in whichever way
+  if (isFunctionalComponent(InputComponent)) {
+    return InputComponent(props);
+  }
 
-	return <InputComponent { ...props } />;
+  return <InputComponent { ...props } />;
 };
 ```
 
